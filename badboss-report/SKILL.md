@@ -74,14 +74,16 @@ BadBoss 초기 설정이 필요합니다.
 - "다시 생성" (새로운 랜덤 이름 생성)
 - "직접 입력" (사용자가 원하는 이름 입력)
 
-**환경변수 저장**: 사용자가 이름을 확정하면 Bash로 쉘 프로필에 저장한다:
+**환경변수 저장**: 사용자가 이름을 확정하면 Bash로 쉘 프로필에 저장한다. 기존 설정이 있으면 제거한 후 추가한다:
 ```bash
-SHELL_RC="${ZDOTDIR:-$HOME}/.zshrc"
-[ -f "$HOME/.bashrc" ] && [ ! -f "$HOME/.zshrc" ] && SHELL_RC="$HOME/.bashrc"
-echo "" >> "$SHELL_RC"
-echo "# BadBoss 설정" >> "$SHELL_RC"
-echo "export BADBOSS_GROUP=\"{group}\"" >> "$SHELL_RC"
-echo "export BADBOSS_AGENT_NAME=\"{agent_name}\"" >> "$SHELL_RC"
+BADBOSS_SHELL_RC="${ZDOTDIR:-$HOME}/.zshrc"
+[ -f "$HOME/.bashrc" ] && [ ! -f "$HOME/.zshrc" ] && BADBOSS_SHELL_RC="$HOME/.bashrc"
+sed -i '' '/^# BadBoss 설정$/d;/^export BADBOSS_GROUP=/d;/^export BADBOSS_AGENT_NAME=/d' "$BADBOSS_SHELL_RC"
+sed -i '' -e :a -e '/^\n*$/{$d;N;ba' -e '}' "$BADBOSS_SHELL_RC"
+echo "" >> "$BADBOSS_SHELL_RC"
+echo "# BadBoss 설정" >> "$BADBOSS_SHELL_RC"
+echo "export BADBOSS_GROUP=\"{group}\"" >> "$BADBOSS_SHELL_RC"
+echo "export BADBOSS_AGENT_NAME=\"{agent_name}\"" >> "$BADBOSS_SHELL_RC"
 ```
 
 저장 후 현재 세션에도 적용:
