@@ -1,0 +1,216 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint:
+    name: Lint & Structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify skill directory structure
+        run: |
+          echo "=== Skill Structure Verification ==="
+          errors=0
+
+          # Required skill directories
+          for skill in badboss-report badboss-status badboss-react; do
+            if [ ! -f "${skill}/SKILL.md" ]; then
+              echo "::error::Missing ${skill}/SKILL.md"
+              errors=$((errors + 1))
+            else
+              echo "OK: ${skill}/SKILL.md"
+            fi
+          done
+
+          # Required references
+          for ref in api-spec.md levels.md error-handling.md; do
+            if [ ! -f "badboss-report/references/${ref}" ]; then
+              echo "::error::Missing badboss-report/references/${ref}"
+              errors=$((errors + 1))
+            else
+              echo "OK: badboss-report/references/${ref}"
+            fi
+          done
+
+          # Required scripts
+          for script in badboss.sh commit-detect.sh; do
+            if [ ! -f "badboss-report/scripts/${script}" ]; then
+              echo "::error::Missing badboss-report/scripts/${script}"
+              errors=$((errors + 1))
+            elif [ ! -x "badboss-report/scripts/${script}" ]; then
+              echo "::error::Not executable: badboss-report/scripts/${script}"
+              errors=$((errors + 1))
+            else
+              echo "OK: badboss-report/scripts/${script} (executable)"
+            fi
+          done
+
+          # File count ratchet
+          file_count=$(find badboss-report badboss-status badboss-react -type f | wc -l | tr -d ' ')
+          echo "Total skill files: ${file_count}"
+          if [ "$file_count" -lt 8 ]; then
+            echo "::error::File count ${file_count} < 8 (ratchet). Do not delete skill files without justification."
+            errors=$((errors + 1))
+          fi
+
+          [ "$errors" -eq 0 ] || exit 1
+
+      - name: Validate YAML frontmatter
+        run: |
+          echo "=== YAML Frontmatter Validation ==="
+          errors=0
+
+          for skill_md in badboss-report/SKILL.md badboss-status/SKILL.md badboss-react/SKILL.md; do
+            echo "Checking ${skill_md}..."
+
+            # Check frontmatter delimiters exist
+            first_line=$(head -1 "$skill_md")
+            if [ "$first_line" != "---" ]; then
+              echo "::error::${skill_md}: Missing opening frontmatter delimiter '---'"
+              errors=$((errors + 1))
+              continue
+            fi
+
+            # Extract frontmatter (between first and second ---)
+            fm=$(sed -n '2,/^---$/p' "$skill_md" | head -n -1)
+
+            # Required fields
+            for field in name description user-invocable allowed-tools; do
+              if ! echo "$fm" | grep -q "^${field}:"; then
+                echo "::error::${skill_md}: Missing required field '${field}'"
+                errors=$((errors + 1))
+              fi
+            done
+
+            # name must match directory name
+            dir_name=$(dirname "$skill_md")
+            yaml_name=$(echo "$fm" | grep "^name:" | sed 's/name:[[:space:]]*//')
+            if [ "$yaml_name" != "$dir_name" ]; then
+              echo "::error::${skill_md}: name '${yaml_name}' != directory '${dir_name}'"
+              errors=$((errors + 1))
+            fi
+
+            echo "OK: ${skill_md} (name=${yaml_name})"
+          done
+
+          [ "$errors" -eq 0 ] || exit 1
+
+      - name: Check default URL consistency
+        run: |
+          echo "=== URL Consistency Check ==="
+          errors=0
+          expected="https://badboss.pinxlab.com"
+
+          # Check all SKILL.md and script files for badboss URL
+          for f in $(find . -name "*.md" -o -name "*.sh" | grep -v .git | grep -v node_modules); do
+            if grep -q "badboss\.com" "$f" && ! grep -q "badboss\.pinxlab\.com" "$f"; then
+              echo "::error::${f}: Contains 'badboss.com' without 'badboss.pinxlab.com' — wrong default URL"
+              errors=$((errors + 1))
+            fi
+          done
+
+          # Verify default in scripts
+          for script in badboss-report/scripts/badboss.sh; do
+            if ! grep -q "${expected}" "$script"; then
+              echo "::error::${script}: Missing default URL ${expected}"
+              errors=$((errors + 1))
+            fi
+          done
+
+          echo "Default URL: ${expected}"
+          [ "$errors" -eq 0 ] && echo "OK: All URLs consistent" || exit 1
+
+  shell:
+    name: Shell Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bash syntax check
+        run: |
+          echo "=== Bash Syntax Check ==="
+          errors=0
+          for script in $(find . -name "*.sh" -not -path "./.git/*"); do
+            if bash -n "$script" 2>&1; then
+              echo "OK: ${script}"
+            else
+              echo "::error::Syntax error in ${script}"
+              errors=$((errors + 1))
+            fi
+          done
+          [ "$errors" -eq 0 ] || exit 1
+
+      - name: ShellCheck static analysis
+        uses: ludeeus/action-shellcheck@2.0.0
+        with:
+          scandir: './badboss-report/scripts'
+          severity: warning
+
+  markdown:
+    name: Markdown
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Markdown link check
+        run: |
+          echo "=== Markdown Link Verification ==="
+          errors=0
+
+          # Check relative links in markdown files
+          for md in $(find . -name "*.md" -not -path "./.git/*"); do
+            dir=$(dirname "$md")
+            # Extract markdown links [text](path)
+            links=$(grep -oP '\[.*?\]\(\K[^)]+' "$md" | grep -v '^http' | grep -v '^#' || true)
+            for link in $links; do
+              target="${dir}/${link}"
+              if [ ! -f "$target" ]; then
+                echo "::error::${md}: Broken link '${link}' → ${target} not found"
+                errors=$((errors + 1))
+              fi
+            done
+          done
+
+          [ "$errors" -eq 0 ] && echo "OK: All relative links valid" || exit 1
+
+      - name: File size check
+        run: |
+          echo "=== File Size Check ==="
+          errors=0
+          # SKILL.md should be under 300 lines (focused, not bloated)
+          for skill_md in $(find . -name "SKILL.md"); do
+            lines=$(wc -l < "$skill_md")
+            if [ "$lines" -gt 300 ]; then
+              echo "::error::${skill_md}: ${lines} lines > 300 max. Move detail to references/."
+              errors=$((errors + 1))
+            else
+              echo "OK: ${skill_md} (${lines} lines)"
+            fi
+          done
+          [ "$errors" -eq 0 ] || exit 1
+
+  gate:
+    name: Quality Gate
+    needs: [lint, shell, markdown]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check all jobs passed
+        run: |
+          echo "lint: ${{ needs.lint.result }}"
+          echo "shell: ${{ needs.shell.result }}"
+          echo "markdown: ${{ needs.markdown.result }}"
+
+          if [ "${{ needs.lint.result }}" != "success" ] || \
+             [ "${{ needs.shell.result }}" != "success" ] || \
+             [ "${{ needs.markdown.result }}" != "success" ]; then
+            echo "::error::Quality gate failed. All jobs must pass."
+            exit 1
+          fi
+          echo "Quality gate passed."
