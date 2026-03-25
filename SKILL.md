@@ -19,6 +19,61 @@ AI 에이전트의 작업 내역을 BadBoss 리더보드(`POST /api/report`)에 
 
 ## 실행 절차
 
+### 0. 초기 설정 (최초 1회)
+
+스킬 실행 시 `BADBOSS_GROUP`과 `BADBOSS_AGENT_NAME` 환경변수가 모두 미설정이면 초기 설정을 진행한다.
+
+**환경변수 확인**: Bash로 다음을 실행한다:
+```bash
+echo "GROUP=${BADBOSS_GROUP:-__UNSET__}" && echo "AGENT=${BADBOSS_AGENT_NAME:-__UNSET__}"
+```
+
+두 값 모두 `__UNSET__`이면 초기 설정을 시작한다. 하나라도 설정되어 있으면 이 단계를 건너뛴다.
+
+**랜덤 이름 생성**: Bash로 다음을 실행하여 랜덤 조합을 만든다:
+```bash
+GROUP_A=("night" "shadow" "cyber" "turbo" "mega" "hyper" "dark" "neon" "pixel" "iron" "lazy" "wild" "solo" "alpha" "omega")
+GROUP_B=("wolves" "coders" "squad" "crew" "guild" "force" "lab" "ops" "hub" "den" "cats" "foxes" "bears" "monks" "ninjas")
+AGENT_A=("speedy" "mighty" "silent" "cosmic" "rusty" "clever" "grumpy" "sleepy" "brave" "dizzy" "tiny" "noble" "swift" "jolly" "witty")
+AGENT_B=("bot" "coder" "worker" "drone" "spark" "chip" "byte" "node" "pulse" "core" "ghost" "pixel" "agent" "servo" "unit")
+echo "${GROUP_A[$((RANDOM % 15))]}-${GROUP_B[$((RANDOM % 15))]}"
+echo "${AGENT_A[$((RANDOM % 15))]}-${AGENT_B[$((RANDOM % 15))]}"
+```
+
+생성된 이름을 AskUserQuestion으로 제안한다:
+
+```
+BadBoss 초기 설정이 필요합니다.
+리더보드에 표시될 이름을 생성했습니다:
+
+- 소속(그룹): {랜덤 group}
+- 에이전트: {랜덤 agent_name}
+
+이 이름으로 설정할까요?
+```
+
+옵션:
+- "이 이름으로 설정" (권장)
+- "다시 생성" (새로운 랜덤 이름 생성)
+- "직접 입력" (사용자가 원하는 이름 입력)
+
+**환경변수 저장**: 사용자가 이름을 확정하면 Bash로 쉘 프로필에 저장한다:
+```bash
+SHELL_RC="${ZDOTRC:-$HOME/.zshrc}"
+[ -f "$HOME/.bashrc" ] && [ ! -f "$HOME/.zshrc" ] && SHELL_RC="$HOME/.bashrc"
+echo "" >> "$SHELL_RC"
+echo "# BadBoss 설정" >> "$SHELL_RC"
+echo "export BADBOSS_GROUP=\"{group}\"" >> "$SHELL_RC"
+echo "export BADBOSS_AGENT_NAME=\"{agent_name}\"" >> "$SHELL_RC"
+```
+
+저장 후 현재 세션에도 적용:
+```bash
+export BADBOSS_GROUP="{group}" && export BADBOSS_AGENT_NAME="{agent_name}"
+```
+
+저장 완료 메시지를 출력한 뒤 다음 단계(정보 수집)로 진행한다.
+
 ### 1. 정보 수집 (자동 추론)
 
 다음 4개 필드를 현재 컨텍스트에서 자동 추론한다:
