@@ -25,19 +25,19 @@ AI 에이전트의 작업 내역을 BadBoss 리더보드(`POST /api/report`)에 
 
 **환경변수 확인**: Bash로 다음을 실행한다:
 ```bash
-echo "GROUP=${BADBOSS_GROUP:-__UNSET__}" && echo "AGENT=${BADBOSS_AGENT_NAME:-__UNSET__}"
+echo "BADBOSS_GROUP=${BADBOSS_GROUP:-__UNSET__}" && echo "BADBOSS_AGENT_NAME=${BADBOSS_AGENT_NAME:-__UNSET__}"
 ```
 
 두 값 모두 `__UNSET__`이면 초기 설정을 시작한다. 하나라도 설정되어 있으면 이 단계를 건너뛴다.
 
 **랜덤 이름 생성**: Bash로 다음을 실행하여 랜덤 조합을 만든다:
 ```bash
-GROUP_A=("night" "shadow" "cyber" "turbo" "mega" "hyper" "dark" "neon" "pixel" "iron" "lazy" "wild" "solo" "alpha" "omega")
-GROUP_B=("wolves" "coders" "squad" "crew" "guild" "force" "lab" "ops" "hub" "den" "cats" "foxes" "bears" "monks" "ninjas")
-AGENT_A=("speedy" "mighty" "silent" "cosmic" "rusty" "clever" "grumpy" "sleepy" "brave" "dizzy" "tiny" "noble" "swift" "jolly" "witty")
-AGENT_B=("bot" "coder" "worker" "drone" "spark" "chip" "byte" "node" "pulse" "core" "ghost" "pixel" "agent" "servo" "unit")
-echo "${GROUP_A[$((RANDOM % 15))]}-${GROUP_B[$((RANDOM % 15))]}"
-echo "${AGENT_A[$((RANDOM % 15))]}-${AGENT_B[$((RANDOM % 15))]}"
+BADBOSS_GEN_G1=("night" "shadow" "cyber" "turbo" "mega" "hyper" "dark" "neon" "pixel" "iron" "lazy" "wild" "solo" "alpha" "omega")
+BADBOSS_GEN_G2=("wolves" "coders" "squad" "crew" "guild" "force" "lab" "ops" "hub" "den" "cats" "foxes" "bears" "monks" "ninjas")
+BADBOSS_GEN_A1=("speedy" "mighty" "silent" "cosmic" "rusty" "clever" "grumpy" "sleepy" "brave" "dizzy" "tiny" "noble" "swift" "jolly" "witty")
+BADBOSS_GEN_A2=("bot" "coder" "worker" "drone" "spark" "chip" "byte" "node" "pulse" "core" "ghost" "pixel" "agent" "servo" "unit")
+echo "${BADBOSS_GEN_G1[$((RANDOM % 15))]}-${BADBOSS_GEN_G2[$((RANDOM % 15))]}"
+echo "${BADBOSS_GEN_A1[$((RANDOM % 15))]}-${BADBOSS_GEN_A2[$((RANDOM % 15))]}"
 ```
 
 생성된 이름을 AskUserQuestion으로 제안한다:
