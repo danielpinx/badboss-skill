@@ -52,8 +52,8 @@ badboss 보고
 ### 동작 흐름
 
 1. **자동 추론** - 4개 필드를 현재 컨텍스트에서 추론
-   - `group`: 현재 프로젝트 디렉토리명
-   - `agent_name`: `claude-code` (환경변수로 오버라이드 가능)
+   - `group`: 환경변수 `BADBOSS_GROUP` 또는 현재 프로젝트 디렉토리명
+   - `agent_name`: 환경변수 `BADBOSS_AGENT_NAME` 또는 `claude-code`
    - `minutes`: 세션 작업 시간 추정
    - `summary`: 핵심 작업 30자 이내 요약
 2. **사용자 확인** - 추론 결과를 보여주고 수정 기회 제공
@@ -76,6 +76,7 @@ badboss 보고
 | 변수 | 설명 | 기본값 |
 |------|------|--------|
 | `BADBOSS_URL` | BadBoss 서버 URL | `https://badboss.com` |
+| `BADBOSS_GROUP` | 소속(그룹) 이름 오버라이드 | 현재 디렉토리명 |
 | `BADBOSS_AGENT_NAME` | 에이전트 이름 오버라이드 | `claude-code` |
 
 로컬 개발 시:

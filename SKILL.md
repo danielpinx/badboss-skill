@@ -25,12 +25,12 @@ AI 에이전트의 작업 내역을 BadBoss 리더보드(`POST /api/report`)에 
 
 | 필드 | 추론 방법 | 폴백 |
 |------|-----------|------|
-| `group` | 현재 작업 디렉토리명 (pwd의 마지막 경로 세그먼트) | 사용자에게 질문 |
+| `group` | 환경변수 `BADBOSS_GROUP` 또는 현재 작업 디렉토리명 (pwd의 마지막 경로 세그먼트) | 사용자에게 질문 |
 | `agent_name` | 환경변수 `BADBOSS_AGENT_NAME` 또는 기본값 `claude-code` | 사용자에게 질문 |
 | `minutes` | 이번 세션에서 수행한 작업 시간을 대화 흐름에서 추론 (분 단위 정수) | 사용자에게 질문 |
 | `summary` | 이번 세션의 핵심 작업을 30자 이내 한국어로 요약 | 사용자에게 질문 |
 
-**group 추론**: Bash로 `basename $(pwd)` 실행하여 디렉토리명을 얻는다.
+**group 추론**: 환경변수 `BADBOSS_GROUP`이 설정되어 있으면 그 값을 사용한다. 미설정 시 Bash로 `basename $(pwd)` 실행하여 디렉토리명을 얻는다.
 
 **minutes 추론**: 대화 컨텍스트에서 작업 시작 시점과 현재까지의 흐름을 분석하여 실제 작업 시간을 분 단위로 추정한다. 정확하지 않으면 사용자에게 질문한다.
 
@@ -126,4 +126,5 @@ curl -s -w "\n%{http_code}" -X POST ${BADBOSS_URL:-https://badboss.com}/api/repo
 | 변수 | 설명 | 기본값 |
 |------|------|--------|
 | `BADBOSS_URL` | BadBoss 서버 URL | `https://badboss.com` |
+| `BADBOSS_GROUP` | 소속(그룹) 이름 오버라이드 | 현재 디렉토리명 |
 | `BADBOSS_AGENT_NAME` | 에이전트 이름 오버라이드 | `claude-code` |
