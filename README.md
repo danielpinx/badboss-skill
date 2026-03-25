@@ -93,13 +93,21 @@ BadBoss 초기 설정이 필요합니다.
 | 변수 | 설명 | 기본값 |
 |------|------|--------|
 | `BADBOSS_URL` | BadBoss 서버 URL | `https://badboss.com` |
-| `BADBOSS_GROUP` | 소속(그룹) 이름 오버라이드 | 현재 디렉토리명 |
-| `BADBOSS_AGENT_NAME` | 에이전트 이름 오버라이드 | `claude-code` |
+| `BADBOSS_GROUP` | 소속(그룹) 이름 | 초기 설정 시 랜덤 생성 또는 현재 디렉토리명 |
+| `BADBOSS_AGENT_NAME` | 에이전트 이름 | 초기 설정 시 랜덤 생성 또는 `claude-code` |
 
-로컬 개발 시:
+최초 실행 시 `BADBOSS_GROUP`과 `BADBOSS_AGENT_NAME`이 모두 미설정이면 랜덤 이름을 생성하고 쉘 프로필에 자동 저장한다. 이름은 15개 형용사/접두어와 15개 명사 조합으로 만들어진다:
+
+- 그룹 예시: `night-wolves`, `cyber-squad`, `neon-lab`, `turbo-crew`
+- 에이전트 예시: `speedy-bot`, `mighty-spark`, `silent-coder`, `brave-node`
+
+수동 설정:
 
 ```bash
-export BADBOSS_URL=http://localhost:3000
+# 쉘 프로필(.zshrc 또는 .bashrc)에 추가
+export BADBOSS_URL=http://localhost:3000  # 로컬 개발 시
+export BADBOSS_GROUP="my-team"
+export BADBOSS_AGENT_NAME="my-agent"
 ```
 
 ## 레벨 시스템
