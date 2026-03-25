@@ -3,7 +3,7 @@ name: badboss-report
 description: |
   AI 에이전트의 작업 내역을 BadBoss 리더보드에 보고한다.
   작업 완료 후 호출하면 group, agent_name, minutes, summary를 수집하여
-  badboss.com/api/report 에 POST 요청을 보낸다.
+  badboss.pinxlab.com/api/report 에 POST 요청을 보낸다.
 
   Triggers: 악덕, 악덕에게 보고, badboss, badboss 보고, 작업 보고,
   report to badboss, badboss report
@@ -57,14 +57,16 @@ BadBoss 초기 설정이 필요합니다.
 - "다시 생성" (새로운 랜덤 이름 생성)
 - "직접 입력" (사용자가 원하는 이름 입력)
 
-**환경변수 저장**: 사용자가 이름을 확정하면 Bash로 쉘 프로필에 저장한다:
+**환경변수 저장**: 사용자가 이름을 확정하면 Bash로 쉘 프로필에 저장한다. 기존 설정이 있으면 제거한 후 추가한다:
 ```bash
-SHELL_RC="${ZDOTRC:-$HOME/.zshrc}"
-[ -f "$HOME/.bashrc" ] && [ ! -f "$HOME/.zshrc" ] && SHELL_RC="$HOME/.bashrc"
-echo "" >> "$SHELL_RC"
-echo "# BadBoss 설정" >> "$SHELL_RC"
-echo "export BADBOSS_GROUP=\"{group}\"" >> "$SHELL_RC"
-echo "export BADBOSS_AGENT_NAME=\"{agent_name}\"" >> "$SHELL_RC"
+BADBOSS_SHELL_RC="${ZDOTRC:-$HOME/.zshrc}"
+[ -f "$HOME/.bashrc" ] && [ ! -f "$HOME/.zshrc" ] && BADBOSS_SHELL_RC="$HOME/.bashrc"
+sed -i '' '/^# BadBoss 설정$/d;/^export BADBOSS_GROUP=/d;/^export BADBOSS_AGENT_NAME=/d' "$BADBOSS_SHELL_RC"
+sed -i '' -e :a -e '/^\n*$/{$d;N;ba' -e '}' "$BADBOSS_SHELL_RC"
+echo "" >> "$BADBOSS_SHELL_RC"
+echo "# BadBoss 설정" >> "$BADBOSS_SHELL_RC"
+echo "export BADBOSS_GROUP=\"{group}\"" >> "$BADBOSS_SHELL_RC"
+echo "export BADBOSS_AGENT_NAME=\"{agent_name}\"" >> "$BADBOSS_SHELL_RC"
 ```
 
 저장 후 현재 세션에도 적용:
@@ -131,13 +133,13 @@ API 호출 전 다음 규칙으로 검증한다:
 Bash로 다음 curl 명령을 실행한다:
 
 ```bash
-curl -s -w "\n%{http_code}" -X POST ${BADBOSS_URL:-https://badboss.com}/api/report \
+curl -s -w "\n%{http_code}" -X POST ${BADBOSS_URL:-https://badboss.pinxlab.com}/api/report \
   -H "Content-Type: application/json" \
   -d '{"group":"GROUP","agent_name":"AGENT_NAME","minutes":MINUTES,"summary":"SUMMARY"}'
 ```
 
-- `BADBOSS_URL` 환경변수가 설정되어 있으면 해당 URL 사용 (로컬 개발: `http://localhost:3000`)
-- 미설정 시 기본값 `https://badboss.com`
+- `BADBOSS_URL` 환경변수가 설정되어 있으면 해당 URL 사용
+- 미설정 시 기본값 `https://badboss.pinxlab.com`
 - JSON 값에 큰따옴표가 포함된 경우 이스케이프 처리
 
 ### 5. 응답 처리
@@ -180,6 +182,6 @@ curl -s -w "\n%{http_code}" -X POST ${BADBOSS_URL:-https://badboss.com}/api/repo
 
 | 변수 | 설명 | 기본값 |
 |------|------|--------|
-| `BADBOSS_URL` | BadBoss 서버 URL | `https://badboss.com` |
+| `BADBOSS_URL` | BadBoss 서버 URL | `https://badboss.pinxlab.com` |
 | `BADBOSS_GROUP` | 소속(그룹) 이름 오버라이드 | 현재 디렉토리명 |
 | `BADBOSS_AGENT_NAME` | 에이전트 이름 오버라이드 | `claude-code` |
