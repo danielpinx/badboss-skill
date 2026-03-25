@@ -48,10 +48,52 @@ feature/* ──→ develop ──→ main
    git add <files>
    git commit -m "feat: 기능 설명"
    git push origin feature/my-feature
-   gh pr create --base develop --title "feat: 기능 설명" --body "..."
    ```
 
+   PR 생성 시 **반드시 HEREDOC**으로 body를 작성한다 (인라인 금지):
+   ```bash
+   gh pr create --base develop --title "feat: 기능 설명" \
+     --body "$(cat <<'PRBODY'
+   ## 요약
+   <2-3줄: 무엇을 + 왜 변경했는지>
+
+   ## 변경 사항
+
+   ### 핵심 변경
+   - `파일경로`: 변경 내용 — AS-IS → TO-BE
+     - 근거: 한 줄 설명
+
+   ### 부수 변경
+   없음
+
+   ### 문서/설정 변경
+   - `docs/progress.md`: 칸반 상태 갱신
+
+   ## 영향 범위
+   - **영향받는 스킬**: badboss-report
+   - **하위 호환성**: 유지
+   - **API 스펙 변경**: 없음
+
+   ## 설계 판단
+   단순 수정, 설계 판단 불필요
+
+   ## Pre-PR Quality Gate
+   - [x] `bash -n` 스크립트 문법 — 0 errors
+   - [x] YAML frontmatter 필수 필드 확인
+   - [x] 기본 URL 일관성 확인
+   - [x] `docs/progress.md` 갱신됨
+
+   🤖 Generated with [Claude Code](https://claude.com/claude-code)
+   PRBODY
+   )"
+   ```
+
+   > **금지**: `gh pr create --body "한 줄 요약"` — 줄바꿈 깨짐, 정보량 손실
+
 5. **CI 통과 확인** → 머지
+   ```bash
+   gh pr checks --watch   # CI 전체 통과 대기 (필수)
+   ```
    - progress.md: In Progress → Done
 
 ### 커밋 메시지 규약
