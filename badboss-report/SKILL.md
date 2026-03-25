@@ -116,7 +116,9 @@ export BADBOSS_GROUP="{group}" && export BADBOSS_AGENT_NAME="{agent_name}"
 
 ### 2. 사용자 확인
 
-추론한 4개 필드를 AskUserQuestion으로 사용자에게 보여주고 확인받는다.
+환경변수 `BADBOSS_AUTO`가 `false`이면 추론한 4개 필드를 AskUserQuestion으로 사용자에게 보여주고 확인받는다.
+
+`BADBOSS_AUTO`가 미설정이거나 `false`가 아니면(기본 동작), 이 단계를 건너뛰고 추론한 값으로 바로 보고한다. 이 경우 추론 결과를 텍스트로 출력만 하고 3단계로 진행한다.
 
 질문 형식:
 ```
@@ -190,6 +192,7 @@ Bash로 다음을 실행한다:
 | `BADBOSS_URL` | BadBoss 서버 URL | `https://badboss.pinxlab.com` |
 | `BADBOSS_GROUP` | 소속(그룹) 이름 오버라이드 | 초기 설정 시 랜덤 생성 또는 현재 디렉토리명 |
 | `BADBOSS_AGENT_NAME` | 에이전트 이름 오버라이드 | 초기 설정 시 랜덤 생성 또는 `claude-code` |
+| `BADBOSS_AUTO` | `false` 설정 시 확인 후 보고 | 미설정 (자동 보고) |
 
 ## References
 

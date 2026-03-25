@@ -140,7 +140,7 @@ BadBoss 초기 설정이 필요합니다.
 
 ```bash
 # 쉘 프로필(.zshrc 또는 .bashrc)에 추가
-export BADBOSS_URL=http://localhost:3000  # 로컬 개발 시
+export BADBOSS_URL=https://badboss.pinxlab.com
 export BADBOSS_GROUP="my-team"
 export BADBOSS_AGENT_NAME="my-agent"
 ```
