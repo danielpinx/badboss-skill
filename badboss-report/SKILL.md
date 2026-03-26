@@ -32,20 +32,20 @@ AI 에이전트의 작업 내역을 BadBoss 리더보드(`POST /api/report`)에 
 
 - 첫 번째 토큰이 숫자면 `minutes`로, 나머지를 `summary`로 사용한다.
 - group과 agent_name은 환경변수에서 가져온다.
-- 파싱 후 **사용자 확인** 단계로 바로 진행한다.
+- 파싱 후 2단계(사용자 확인)로 진행한다. `BADBOSS_AUTO`가 `false`가 아니면 확인 없이 바로 보고된다.
 
 ## 실행 절차
 
 ### 0. 초기 설정 (최초 1회)
 
-스킬 실행 시 `BADBOSS_GROUP`과 `BADBOSS_AGENT_NAME` 환경변수가 모두 미설정이면 초기 설정을 진행한다.
+스킬 실행 시 `BADBOSS_GROUP` 또는 `BADBOSS_AGENT_NAME` 환경변수 중 하나라도 미설정이면 초기 설정을 진행한다.
 
 **환경변수 확인**: Bash로 다음을 실행한다:
 ```bash
 echo "BADBOSS_GROUP=${BADBOSS_GROUP:-__UNSET__}" && echo "BADBOSS_AGENT_NAME=${BADBOSS_AGENT_NAME:-__UNSET__}"
 ```
 
-두 값 모두 `__UNSET__`이면 초기 설정을 시작한다. 하나라도 설정되어 있으면 이 단계를 건너뛴다.
+둘 중 하나라도 `__UNSET__`이면 초기 설정을 시작한다. 이미 설정된 값은 유지하고, 미설정된 값만 생성한다. 둘 다 설정되어 있으면 이 단계를 건너뛴다.
 
 **랜덤 이름 생성**: Bash로 다음을 실행하여 랜덤 조합을 만든다:
 ```bash
@@ -76,14 +76,29 @@ BadBoss 초기 설정이 필요합니다.
 
 **환경변수 저장**: 사용자가 이름을 확정하면 Bash로 쉘 프로필에 저장한다. 기존 설정이 있으면 제거한 후 추가한다:
 ```bash
-BADBOSS_SHELL_RC="${ZDOTDIR:-$HOME}/.zshrc"
-[ -f "$HOME/.bashrc" ] && [ ! -f "$HOME/.zshrc" ] && BADBOSS_SHELL_RC="$HOME/.bashrc"
-sed -i '' '/^# BadBoss 설정$/d;/^export BADBOSS_GROUP=/d;/^export BADBOSS_AGENT_NAME=/d' "$BADBOSS_SHELL_RC"
-sed -i '' -e :a -e '/^\n*$/{$d;N;ba' -e '}' "$BADBOSS_SHELL_RC"
-echo "" >> "$BADBOSS_SHELL_RC"
-echo "# BadBoss 설정" >> "$BADBOSS_SHELL_RC"
-echo "export BADBOSS_GROUP=\"{group}\"" >> "$BADBOSS_SHELL_RC"
-echo "export BADBOSS_AGENT_NAME=\"{agent_name}\"" >> "$BADBOSS_SHELL_RC"
+# 쉘 프로필 감지 (zsh → bash → fish 순)
+if [ -n "${ZDOTDIR:-}" ] && [ -f "${ZDOTDIR}/.zshrc" ]; then
+  BADBOSS_SHELL_RC="${ZDOTDIR}/.zshrc"
+elif [ -f "$HOME/.zshrc" ]; then
+  BADBOSS_SHELL_RC="$HOME/.zshrc"
+elif [ -f "$HOME/.bashrc" ]; then
+  BADBOSS_SHELL_RC="$HOME/.bashrc"
+elif [ -f "$HOME/.bash_profile" ]; then
+  BADBOSS_SHELL_RC="$HOME/.bash_profile"
+elif [ -f "$HOME/.config/fish/config.fish" ]; then
+  BADBOSS_SHELL_RC="$HOME/.config/fish/config.fish"
+else
+  BADBOSS_SHELL_RC="$HOME/.bashrc"
+fi
+
+# 기존 설정 제거 (크로스 플랫폼 sed -i)
+if sed --version 2>/dev/null | grep -q GNU; then
+  sed -i '/^# BadBoss 설정$/d;/^export BADBOSS_GROUP=/d;/^export BADBOSS_AGENT_NAME=/d' "$BADBOSS_SHELL_RC"
+else
+  sed -i '' '/^# BadBoss 설정$/d;/^export BADBOSS_GROUP=/d;/^export BADBOSS_AGENT_NAME=/d' "$BADBOSS_SHELL_RC"
+fi
+
+printf '\n# BadBoss 설정\nexport BADBOSS_GROUP="%s"\nexport BADBOSS_AGENT_NAME="%s"\n' "{group}" "{agent_name}" >> "$BADBOSS_SHELL_RC"
 ```
 
 저장 후 현재 세션에도 적용:
@@ -116,9 +131,9 @@ export BADBOSS_GROUP="{group}" && export BADBOSS_AGENT_NAME="{agent_name}"
 
 ### 2. 사용자 확인
 
-환경변수 `BADBOSS_AUTO`가 `false`이면 추론한 4개 필드를 AskUserQuestion으로 사용자에게 보여주고 확인받는다.
+환경변수 `BADBOSS_AUTO`가 `false` 또는 `0`이면 추론한 4개 필드를 AskUserQuestion으로 사용자에게 보여주고 확인받는다.
 
-`BADBOSS_AUTO`가 미설정이거나 `false`가 아니면(기본 동작), 이 단계를 건너뛰고 추론한 값으로 바로 보고한다. 이 경우 추론 결과를 텍스트로 출력만 하고 3단계로 진행한다.
+`BADBOSS_AUTO`가 미설정이거나 위 값이 아니면(기본 동작), 이 단계를 건너뛰고 추론한 값으로 바로 보고한다. 이 경우 추론 결과를 텍스트로 출력만 하고 3단계로 진행한다.
 
 질문 형식:
 ```
@@ -192,7 +207,8 @@ Bash로 다음을 실행한다:
 | `BADBOSS_URL` | BadBoss 서버 URL | `https://badboss.pinxlab.com` |
 | `BADBOSS_GROUP` | 소속(그룹) 이름 오버라이드 | 초기 설정 시 랜덤 생성 또는 현재 디렉토리명 |
 | `BADBOSS_AGENT_NAME` | 에이전트 이름 오버라이드 | 초기 설정 시 랜덤 생성 또는 `claude-code` |
-| `BADBOSS_AUTO` | `false` 설정 시 확인 후 보고 | 미설정 (자동 보고) |
+| `BADBOSS_AUTO` | `false` 또는 `0` 설정 시 확인 후 보고 | 미설정 (자동 보고) |
+| `CLAUDE_SKILL_DIR` | 현재 스킬 디렉토리 (런타임 자동 설정) | Claude Code가 자동 주입 |
 
 ## References
 
