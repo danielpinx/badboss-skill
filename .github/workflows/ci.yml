@@ -77,6 +77,14 @@ jobs:
               continue
             fi
 
+            # Check closing frontmatter delimiter
+            closing_line=$(tail -n +2 "$skill_md" | grep -n '^---$' | head -1 | cut -d: -f1)
+            if [ -z "$closing_line" ]; then
+              echo "::error::${skill_md}: Missing closing frontmatter delimiter '---'"
+              errors=$((errors + 1))
+              continue
+            fi
+
             # Extract frontmatter (between first and second ---)
             fm=$(sed -n '2,/^---$/p' "$skill_md" | head -n -1)
 
@@ -149,7 +157,7 @@ jobs:
       - name: ShellCheck static analysis
         uses: ludeeus/action-shellcheck@2.0.0
         with:
-          scandir: './badboss-report/scripts'
+          scandir: '.'
           severity: warning
 
   markdown:
@@ -169,8 +177,12 @@ jobs:
             # Extract markdown links [text](path)
             links=$(grep -oP '\[.*?\]\(\K[^)]+' "$md" | grep -v '^http' | grep -v '^#' || true)
             for link in $links; do
-              target="${dir}/${link}"
-              if [ ! -f "$target" ]; then
+              # Strip anchors and query params before checking
+              clean_link="${link%%#*}"
+              clean_link="${clean_link%%\?*}"
+              [ -z "$clean_link" ] && continue
+              target="${dir}/${clean_link}"
+              if [ ! -f "$target" ] && [ ! -d "$target" ]; then
                 echo "::error::${md}: Broken link '${link}' → ${target} not found"
                 errors=$((errors + 1))
               fi
